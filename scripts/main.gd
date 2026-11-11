@@ -48,13 +48,10 @@ func show_menu() -> void:
 	layer.add_child(menu)
 	menu.start_pressed.connect(start_game)
 	menu.map_changed.connect(_on_map_changed)
-	# show the menu first, then build the background battle
+	# no live battle behind the menu any more: it cost several seconds of map
+	# building and shader compiling before the menu could be used
 	await get_tree().process_frame
-	await get_tree().process_frame
-	if menu != null:
-		print("[boot] menu visible at %d ms" % Time.get_ticks_msec())
-		_start_demo()
-		print("[boot] background battle ready at %d ms" % Time.get_ticks_msec())
+	print("[boot] menu visible at %d ms" % Time.get_ticks_msec())
 
 
 var demo: Node2D
@@ -77,6 +74,7 @@ func _start_demo() -> void:
 
 
 func _on_map_changed() -> void:
+	return
 	_demo_gen += 1
 	var my := _demo_gen
 	await get_tree().create_timer(0.35).timeout

@@ -12,6 +12,8 @@ var status: Label
 var preview: TextureRect
 var file_dialog: FileDialog
 var _waiting_web := false
+var _bg: Control
+var _t := 0.0
 var touch := DisplayServer.is_touchscreen_available()  # phone/tablet: bigger buttons
 
 
@@ -21,11 +23,13 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_fit)
 
 	# darken the left side so the panel reads well over the demo battle
-	var shade := ColorRect.new()
-	shade.color = Color(0.1, 0.05, 0.12, 0.25)
+	# light background: soft sky, rolling hills and a few critters bobbing about
+	var shade := Control.new()
 	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shade.draw.connect(_draw_bg.bind(shade))
 	add_child(shade)
+	_bg = shade
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_LEFT_WIDE)
@@ -132,13 +136,17 @@ func _ready() -> void:
 	start.grab_focus()
 
 	var ver := Label.new()
-	ver.text = "prototype 0.4"
-	ver.add_theme_font_size_override("font_size", 14)
-	ver.add_theme_color_override("font_color", Color(1, 1, 1, 0.7))
-	ver.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	ver.position = size - Vector2(200, 24)
+	ver.text = "prototype 0.5"
+	if OS.has_feature("web"):
+		var ms = JavaScriptBridge.eval("Math.round(performance.now())", true)
+		if typeof(ms) in [TYPE_INT, TYPE_FLOAT]:
+			ver.text += "  •  ready in %.1f s" % (float(ms) / 1000.0)
+	ver.add_theme_font_size_override("font_size", 16)
+	ver.add_theme_color_override("font_color", Color(INK, 0.75))
 	ver.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	ver.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	add_child(ver)
+	ver.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 14)
 
 
 func _toggle_fullscreen() -> void:
@@ -253,7 +261,28 @@ func _on_file_selected(path: String) -> void:
 	_set_custom(Image.load_from_file(path))
 
 
-func _process(_d: float) -> void:
+const BG_CRITTERS := [
+	[Vector2(0.62, 0.78), Color(1.0, 0.55, 0.7), 0], [Vector2(0.75, 0.70), Color(0.45, 0.75, 1.0), 1],
+	[Vector2(0.88, 0.80), Color(0.6, 1.0, 0.45), 2],
+]
+
+
+func _draw_bg(c: Control) -> void:
+	var s := c.size
+	c.draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(s.x, 0), s, Vector2(0, s.y)]),
+		PackedColorArray([Color("9fd4ff"), Color("c6b2ff"), Color("ffd0ea"), Color("ffe9c9")]))
+	for h in [[0.15, 0.95, 0.42], [0.55, 1.05, 0.5], [0.95, 0.98, 0.45]]:
+		c.draw_circle(Vector2(s.x * h[0], s.y * h[1] + s.y * 0.35), s.y * h[2], Color("b2f2bb"), true, -1.0, true)
+	for k in BG_CRITTERS.size():
+		var b: Array = BG_CRITTERS[k]
+		var p := Vector2(s.x * b[0].x, s.y * b[0].y + sin(_t * 2.0 + k) * 10.0)
+		Sprites.draw_critter(c, p, 4.0, b[1], -1 if k % 2 == 0 else 1, Vector2(-1, -0.3), _t * 6.0 + k, true, b[2], fmod(_t + k, 3.0) < 0.1)
+
+
+func _process(d: float) -> void:
+	_t += d
+	if _bg:
+		_bg.queue_redraw()
 	if _waiting_web:
 		var res := WebUpload.poll()
 		if res.size() > 0:

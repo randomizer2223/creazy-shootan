@@ -18,6 +18,11 @@ func _ready() -> void:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
 		_players.append(p)
+	# build the sounds a moment after start-up so they don't delay the menu
+	get_tree().create_timer(0.8).timeout.connect(_build)
+
+
+func _build() -> void:
 	_sounds["boom"] = _make(0.7, _boom.bind(1.0))
 	_sounds["boom_small"] = _make(0.3, _boom.bind(2.2))
 	_sounds["shot"] = _make(0.09, _shot)
