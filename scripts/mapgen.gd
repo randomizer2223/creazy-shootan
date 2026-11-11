@@ -4,24 +4,16 @@ class_name MapGen
 
 const PRESETS := [
 	{"name": "Cat Chaos", "style": "art", "art": "cats", "seed": 1},
-	{"name": "Cookie Caves", "style": "cave", "seed": 101, "freq": 0.008,
-		"pal": ["a8683a", "c98a52", "e6b07a"], "top": "7a4a2a", "top_h": 0, "sky": []},
-	{"name": "Green Islands", "style": "islands", "seed": 202, "freq": 0.006,
-		"pal": ["9a6440", "b67b50", "d29a6a"], "top": "86de5c", "top_h": 7, "sky": ["7cc8ff", "e6f6ff"]},
-	{"name": "Ice Cave", "style": "cave", "seed": 303, "freq": 0.007,
-		"pal": ["86bfe8", "aedcf7", "eefaff"], "top": "ffffff", "top_h": 6, "sky": []},
-	{"name": "Volcano", "style": "islands", "seed": 404, "freq": 0.007,
-		"pal": ["6a4258", "86506a", "ff8a5a"], "top": "ffb347", "top_h": 5, "sky": ["4a2350", "ff9a7a"]},
-	{"name": "Desert", "style": "dunes", "seed": 505, "freq": 0.01,
-		"pal": ["e8b46a", "f2c886", "fbe2b0"], "top": "fff2cf", "top_h": 5, "sky": ["ffb08a", "fff2d8"]},
-	{"name": "Jungle", "style": "cave", "seed": 606, "freq": 0.009,
-		"pal": ["4a8a42", "64a852", "94d462"], "top": "c2f56e", "top_h": 6, "sky": []},
+	{"name": "Mount Olympus", "style": "art", "art": "olympus", "seed": 2},
+	{"name": "Choo-Choo Station", "style": "art", "art": "trains", "seed": 3},
+	{"name": "Starry Night", "style": "art", "art": "starry", "seed": 4},
+	{"name": "Mona Lisa", "style": "art", "art": "mona", "seed": 5},
+	{"name": "Paris", "style": "art", "art": "paris", "seed": 6},
+	{"name": "Happy Farm", "style": "art", "art": "farm", "seed": 7},
 	{"name": "Candy Kingdom", "style": "islands", "seed": 707, "freq": 0.008,
 		"pal": ["ff8fc0", "ffb5d8", "fff0f8"], "top": "a8f0e0", "top_h": 8, "sky": ["c6b2ff", "ffe8f6"]},
 	{"name": "The Moon", "style": "craters", "seed": 808, "freq": 0.005,
 		"pal": ["9494b8", "b0b0d0", "d8d8ee"], "top": "eeeefa", "top_h": 4, "sky": ["1c1c44", "4a4a80"]},
-	{"name": "Cheese World", "style": "cheese", "seed": 909, "freq": 0.02,
-		"pal": ["f5c040", "ffd65a", "ffe98e"], "top": "fff2b8", "top_h": 0, "sky": []},
 	{"name": "Neon City", "style": "city", "seed": 1010, "freq": 0.01,
 		"pal": ["4a3878", "5c4890", "6ef4ff"], "top": "ff74d8", "top_h": 4, "sky": ["1e1240", "6a3290"]},
 ]
@@ -61,7 +53,10 @@ static func copy(d: Dictionary) -> Dictionary:
 static func _build(index: int) -> Dictionary:
 	var p: Dictionary = PRESETS[clampi(index, 0, PRESETS.size() - 1)]
 	if p["style"] == "art":
-		p = PRESETS[1]
+		for q in PRESETS:
+			if q["style"] != "art":
+				p = q
+				break
 	var rng := RandomNumberGenerator.new()
 	rng.seed = p["seed"]
 	var mask := PackedByteArray()

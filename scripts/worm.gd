@@ -4,11 +4,11 @@ extends RefCounted
 ## Керується лише через словник input — однаково для гравця, бота і (в майбутньому) мережевого гравця.
 
 const GRAV := 560.0
-const WALK := 75.0
+const WALK := 94.0
 const JUMP_V := 215.0
 const MAX_FALL := 500.0
-const ROPE_SPEED := 560.0
-const ROPE_MAX := 320.0
+const ROPE_SPEED := 900.0
+const ROPE_MAX := 5000.0  # practically endless rope
 const ROPE_MIN := 6.0
 const MAX_HP := 100.0
 # collision points: round critter, radius ~5.5 px
@@ -161,7 +161,7 @@ func step(g, dt: float) -> void:
 			vel.y = -JUMP_V
 			on_ground = false
 	else:
-		var acc := 300.0 if hook_state == 2 else 190.0
+		var acc := 375.0 if hook_state == 2 else 238.0
 		if mv != 0 and (vel.x * mv < WALK or hook_state == 2):
 			vel.x += mv * acc * dt
 		vel.x *= 1.0 - 0.15 * dt
@@ -188,7 +188,7 @@ func step(g, dt: float) -> void:
 func _update_hook(t: LTerrain, dt: float) -> void:
 	if hook_state == 1:
 		hook_t += dt
-		hook_vel.y += 250.0 * dt
+		hook_vel.y += 120.0 * dt
 		var d := hook_vel * dt
 		var steps := maxi(1, int(ceil(d.length())))
 		var s := d / steps
@@ -198,7 +198,7 @@ func _update_hook(t: LTerrain, dt: float) -> void:
 				hook_state = 2
 				rope_len = clampf(pos.distance_to(hook_pos), ROPE_MIN, ROPE_MAX)
 				return
-		if hook_t > 0.9 or hook_pos.distance_to(pos) > ROPE_MAX:
+		if hook_t > 4.0:
 			hook_state = 0
 	elif hook_state == 2:
 		if not t.is_solid_v(hook_pos):
