@@ -43,7 +43,7 @@ var hook_vel := Vector2.ZERO
 var hook_t := 0.0
 var rope_len := 0.0
 var rope_auto := false  # right after the hook grabs, the rope reels in by itself
-const ROPE_SHORT := 30.0
+const ROPE_SHORT := 90.0
 const ROPE_REEL := 900.0
 
 var dig_cd := 0.0

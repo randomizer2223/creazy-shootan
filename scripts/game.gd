@@ -99,8 +99,9 @@ func start() -> void:
 	glow.game = self
 	glow.mode = 1
 	glow.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	# (no additive blend material: every extra material is one more shader to
-	# compile while the game loads, which is slow in some browsers)
+	var mat := CanvasItemMaterial.new()
+	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD  # glowing bullets, fire and flashes
+	glow.material = mat
 	add_child(glow)
 	labels = dscript.new()
 	labels.game = self
