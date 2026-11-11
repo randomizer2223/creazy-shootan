@@ -77,6 +77,14 @@ func spawn_at(p: Vector2) -> void:
 	reset_loadout(Weapons.TOP[randi() % Weapons.TOP.size()])
 
 
+## Out of shots: take another top weapon if we have one, otherwise the bazooka.
+func best_weapon_index() -> int:
+	for i in range(weapons.size() - 1, -1, -1):
+		if Weapons.is_top(weapons[i]["id"]):
+			return i
+	return 1
+
+
 func current_weapon_id() -> String:
 	if weapons.is_empty():
 		reset_loadout()
@@ -129,6 +137,8 @@ func step(g, dt: float) -> void:
 	if _edge("rope"):
 		if hook_state == 0:
 			hook_state = 1
+			if g.has_method("sfx"):
+				g.sfx("throw", -10.0, 1.7, pos)
 			hook_pos = pos
 			hook_vel = Vector2.from_angle(aim) * ROPE_SPEED
 			hook_t = 0.0
@@ -273,7 +283,7 @@ func handle_weapons(g, dt: float) -> void:
 				weapons[cur]["ammo"] -= 1
 				if weapons[cur]["ammo"] == 0:
 					weapons.remove_at(cur)
-					cur = 1  # out of shots: back to the bazooka
+					cur = best_weapon_index()
 					if weapons.is_empty():
 						reset_loadout()
 	_wprev["next"] = input.get("next", false)

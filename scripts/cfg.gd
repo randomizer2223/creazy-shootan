@@ -2,9 +2,9 @@ extends Node
 ## Глобальні налаштування гри (autoload "Cfg").
 
 const RELOAD_MODES := [
-	{"name": "Normal", "mult": 0.9},
-	{"name": "Fast", "mult": 0.45},
-	{"name": "Almost instant", "mult": 0.05},
+	{"name": "Normal", "mult": 0.72},
+	{"name": "Fast", "mult": 0.36},
+	{"name": "Almost instant", "mult": 0.12},
 ]
 
 const DIFFICULTIES := [

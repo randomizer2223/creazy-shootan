@@ -66,33 +66,32 @@ func _draw_hud() -> void:
 	if hpf > 0.0:
 		_box(Rect2(bar.position, Vector2(maxf(bar.size.x * hpf, 22), bar.size.y)), Color("ff5c7a").lerp(Color("7ee081"), hpf), 10, 3)
 
-	# ---- weapon bar ----
+	# ---- weapon bar (top left, under the player card) ----
 	var n := p.weapons.size()
-	var slot := 64.0
-	var gap := 10.0
-	var bw := n * slot + (n - 1) * gap
-	var bx := roundf(size.x / 2.0 - bw / 2.0)
-	var by := size.y - slot - 46.0
+	var slot := 44.0
+	var gap := 6.0
+	var bx := 16.0
+	var by := 128.0
 	var cur_def: Dictionary = Weapons.LIST[p.current_weapon_id()]
-	_text_c(size.x / 2.0, by - 16.0, cur_def["name"], 24, Color.WHITE, 8)
+	_text(Vector2(bx + 2, by - 10.0), cur_def["name"], 20, Color.WHITE, 7)
 	for i in n:
 		var wpn: Dictionary = p.weapons[i]
 		var sel := i == p.cur
-		var r := Rect2(bx + i * (slot + gap), by - (8.0 if sel else 0.0), slot, slot)
+		var r := Rect2(bx + i * (slot + gap), by + (0.0 if sel else 4.0), slot, slot)
 		var top := Weapons.is_top(wpn["id"])
-		_box(r, SUN if sel else (Color("ffd6e4") if top else CREAM), 14, 4)
-		panel.draw_texture_rect(Sprites.icon(wpn["id"]), Rect2(r.position + Vector2(8, 8), Vector2(48, 48)), false,
+		_box(r, SUN if sel else (Color("ffd6e4") if top else CREAM), 10, 3)
+		panel.draw_texture_rect(Sprites.icon(wpn["id"]), Rect2(r.position + Vector2(5, 5), Vector2(34, 34)), false,
 			Color(1, 1, 1, 1.0 if sel else 0.75))
 		if sel:
 			var cdf := p.cooldown_frac()
 			if cdf > 0.0:
-				panel.draw_rect(Rect2(r.position + Vector2(4, 4), Vector2(slot - 8, (slot - 8) * cdf)), Color(INK, 0.35))
-		_text(r.position + Vector2(8, 20), str(i + 1), 16, INK)
+				panel.draw_rect(Rect2(r.position + Vector2(3, 3), Vector2(slot - 6, (slot - 6) * cdf)), Color(INK, 0.35))
+		_text(r.position + Vector2(5, 14), str(i + 1), 12, INK)
 		if wpn["ammo"] >= 0:
 			var am := "x%d" % wpn["ammo"]
-			var aw := font.get_string_size(am, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
-			_text(r.position + Vector2(slot - aw - 7, slot - 8), am, 15, Color.WHITE, 5)
-	_text_c(size.x / 2.0, by + slot + 26.0, "Switch weapon:  mouse wheel  •  Q / E  •  keys 1-9", 15, Color.WHITE, 5)
+			var aw := font.get_string_size(am, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+			_text(r.position + Vector2(slot - aw - 4, slot - 5), am, 12, Color.WHITE, 4)
+	_text(Vector2(bx + 2, by + slot + 24.0), "Switch weapon: mouse wheel  •  Q / E  •  1-9", 13, Color.WHITE, 4)
 
 	# ---- scoreboard ----
 	var sorted: Array = game.worms.duplicate()
@@ -121,7 +120,7 @@ func _draw_hud() -> void:
 	# ---- pickup toast ----
 	if game.toast[1] > 0.0:
 		var a := clampf(game.toast[1], 0.0, 1.0)
-		_text_c(size.x / 2.0, by - 52.0, game.toast[0], 30, Color(1, 1, 1, a), 9)
+		_text_c(size.x / 2.0, size.y - 90.0, game.toast[0], 30, Color(1, 1, 1, a), 9)
 
 	# ---- center messages ----
 	var center := size / 2.0
@@ -147,12 +146,11 @@ func _draw_hud() -> void:
 			"Esc  pause      H  help      F3  FPS",
 		]
 		var a := clampf(left, 0.0, 1.0)
-		var ly := size.y - 32.0 - lines.size() * 22.0
-		panel.draw_set_transform(Vector2.ZERO)
-		_box(Rect2(16, ly - 24, 400, lines.size() * 22 + 18), Color(CREAM, 0.92 * a))
+		var ly := by + slot + 64.0
+		_box(Rect2(16, ly - 22, 360, lines.size() * 19 + 16), Color(CREAM, 0.92 * a), 12, 3)
 		for l in lines:
-			_text(Vector2(32, ly), l, 16, Color(INK, a))
-			ly += 22.0
+			_text(Vector2(28, ly), l, 14, Color(INK, a))
+			ly += 19.0
 
 	if game.show_fps:
 		_text(Vector2(size.x / 2.0 - 40, size.y - 12), "FPS %d" % Engine.get_frames_per_second(), 18, Color.WHITE, 5)

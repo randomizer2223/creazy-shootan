@@ -127,6 +127,12 @@ func start() -> void:
 	_announce_weapon(player)
 
 
+func sfx(snd: String, vol := 0.0, pitch := 1.0, pos := Vector2.INF) -> void:
+	if demo or headless_test:
+		return
+	Sfx.play(snd, vol, pitch, pos, cam.position if cam else Vector2.INF)
+
+
 func _announce_weapon(w: LWorm) -> void:
 	if w == player and not demo:
 		toast = ["Your weapon: %s!" % Weapons.LIST[w.current_weapon_id()]["name"], 3.0]
@@ -277,6 +283,17 @@ func _unhandled_input(event: InputEvent) -> void:
 func fire_weapon(w: LWorm, wid: String) -> void:
 	shots += 1
 	var def: Dictionary = Weapons.LIST[wid]
+	match wid:
+		"laser":
+			sfx("laser", -4.0, 1.0, w.pos)
+		"pistol", "uzi", "minigun":
+			sfx("shot", -8.0 if wid != "pistol" else -4.0, 1.2 if wid == "uzi" else 1.0, w.pos)
+		"shotgun":
+			sfx("shot", 0.0, 0.7, w.pos)
+		"dirt":
+			sfx("throw", -6.0, 0.8, w.pos)
+		_:
+			sfx("throw", -4.0, 1.0, w.pos)
 	if def.get("hitscan", false):
 		_fire_laser(w, def)
 		return
@@ -370,6 +387,7 @@ func explode_projectile(p: LProjectile) -> void:
 		return  # fire just goes out
 	if d.get("dirt", 0.0) > 0.0:
 		terrain.add_dirt(p.pos, d["dirt"])
+		sfx("dirt", -4.0, 1.0, p.pos)
 		for i in 14:
 			particles.append([p.pos, Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(20, 90), 0.6,
 				terrain.dirt_colors[rng.randi() % terrain.dirt_colors.size()], 1.5, P_DEBRIS, 0.6])
@@ -392,6 +410,10 @@ func explode(pos: Vector2, radius: float, dmg: float, knock: float, owner: LWorm
 		if terrain.is_solid(qi.x, qi.y):
 			debris_cols.append(terrain.img.get_pixelv(qi))
 	terrain.carve(pos, radius)
+	if radius >= 14.0:
+		sfx("boom", lerpf(-8.0, 2.0, clampf((radius - 14.0) / 32.0, 0.0, 1.0)), 1.0 - clampf(radius / 140.0, 0.0, 0.3), pos)
+	elif radius >= 6.0:
+		sfx("boom_small", -8.0, 1.0, pos)
 
 	var reach := radius + 12.0
 	for w in worms:
@@ -447,9 +469,11 @@ func damage_worm(w: LWorm, amount: float, by: LWorm, dir := Vector2.UP) -> void:
 	if not w.alive or amount <= 0.0:
 		return
 	w.hp -= amount
-	var drops := int(clampf(amount * 1.6, 3, 50))
-	if blood.size() > 700:
-		drops = mini(drops, 3)
+	if amount >= 10.0:
+		sfx("splat", -10.0, 1.2, w.pos)
+	var drops := int(clampf(amount * 2.4, 5, 75))
+	if blood.size() > 1100:
+		drops = mini(drops, 4)
 	bleed(w.pos, dir, drops, 60.0 + amount * 4.0)
 	if by != null:
 		w.last_hit_by = by
@@ -474,8 +498,10 @@ func _kill(w: LWorm) -> void:
 		feed.append([w.name + " blew himself up", 5.0, w.color])
 	if feed.size() > 5:
 		feed.pop_front()
+	sfx("squeak", -4.0, 1.0, w.pos)
+	sfx("splat", 0.0, 0.8, w.pos)
 	# gore: lots of blood, guts, bones and an eyeball
-	bleed(w.pos, Vector2.UP, 140, 260.0)
+	bleed(w.pos, Vector2.UP, 210, 280.0)
 	emitters.append([w.pos, 1.2])
 	var parts := ["gib_meat", "gib_meat", "gib_meat", "gib_bone", "gib_bone", "gib_eye", "gib_meat", "gib_bone",
 		"gib_meat", "gib_meat", "gib_meat", "gib_bone", "gib_bone", "gib_eye", "gib_meat", "gib_bone"]
@@ -506,6 +532,8 @@ func _pickup(w: LWorm, c: LCrate) -> void:
 	c.alive = false
 	var col: Color = GLOW.get(c.kind, Color.WHITE)
 	rings.append([c.pos, 18.0, 0.35, 0.35])
+	if w == player:
+		sfx("pickup", -2.0)
 	if c.kind == "health":
 		w.hp = minf(LWorm.MAX_HP, w.hp + 40.0)
 		texts.append([c.pos + Vector2(0, -10), "+40 HP", 1.4, Color(0.5, 1.0, 0.5)])
@@ -532,14 +560,14 @@ func bleed(pos: Vector2, dir: Vector2, count: int, speed: float) -> void:
 		blood.append([pos + Vector2(rng.randf_range(-2, 2), rng.randf_range(-2, 2)),
 			Vector2.from_angle(a) * rng.randf_range(speed * 0.25, speed) + Vector2(0, -40),
 			rng.randf_range(1.0, 2.5), rng.randf_range(0.8, 1.8)])
-	if blood.size() > 1500:
-		blood = blood.slice(blood.size() - 1500)
+	if blood.size() > 2200:
+		blood = blood.slice(blood.size() - 2200)
 
 
 func _update_gore(dt: float) -> void:
 	for e in emitters:
 		e[1] -= dt
-		for k in 4:
+		for k in 6:
 			blood.append([e[0] + Vector2(rng.randf_range(-2, 2), -2), Vector2(rng.randf_range(-60, 60), rng.randf_range(-260, -120)),
 				2.0, rng.randf_range(1.0, 2.0)])
 	emitters = emitters.filter(func(e): return e[1] > 0.0)
