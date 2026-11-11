@@ -6,6 +6,7 @@ class_name MapArt
 const W := 1280
 const H := 720
 const INK := Color("3b2321")
+const SS := 2  # pictures are rendered at 2x for a sharp image
 
 
 ## Returns {} if the picture could not be rendered (for example in headless mode).
@@ -37,26 +38,15 @@ static func _render(id: String, host: Node) -> Dictionary:
 		return {}
 	fg.convert(Image.FORMAT_RGBA8)
 	bg.convert(Image.FORMAT_RGBA8)
-	var data := fg.get_data()
+	# the picture stays at 2x for sharpness; physics uses a 1x mask (block average of alpha)
+	var small: Image = fg.duplicate()
+	small.resize(W, H, Image.INTERPOLATE_BILINEAR)
+	var sdata := small.get_data()
 	var mask := PackedByteArray()
 	mask.resize(W * H)
 	for i in W * H:
-		var a := data[i * 4 + 3]
-		if a >= 128:
-			mask[i] = 1
-			# undo premultiplied edges so colors stay bright
-			if a < 255:
-				var k := 255.0 / a
-				data[i * 4] = mini(int(data[i * 4] * k), 255)
-				data[i * 4 + 1] = mini(int(data[i * 4 + 1] * k), 255)
-				data[i * 4 + 2] = mini(int(data[i * 4 + 2] * k), 255)
-			data[i * 4 + 3] = 255
-		else:
-			data[i * 4] = 0
-			data[i * 4 + 1] = 0
-			data[i * 4 + 2] = 0
-			data[i * 4 + 3] = 0
-	var fimg := Image.create_from_data(W, H, false, Image.FORMAT_RGBA8, data)
+		mask[i] = 1 if sdata[i * 4 + 3] >= 128 else 0
+	var fimg := fg
 	var dirt: Array = DIRT.get(id, DIRT["cats"])
 	return {"fg": fimg, "bg": bg, "mask": mask, "dirt": dirt, "outline": INK}
 
@@ -75,11 +65,12 @@ const DIRT := {
 
 static func _viewport(host: Node, id: String, layer: int) -> SubViewport:
 	var vp := SubViewport.new()
-	vp.size = Vector2i(W, H)
+	vp.size = Vector2i(W * SS, H * SS)
 	vp.transparent_bg = layer == 0
 	vp.disable_3d = true
 	vp.render_target_update_mode = SubViewport.UPDATE_ONCE
 	var canvas := Node2D.new()
+	canvas.scale = Vector2(SS, SS)
 	canvas.draw.connect(func():
 		var p := ArtPainter.new(canvas)
 		p.call(id + ("_ground" if layer == 0 else "_sky"))
@@ -126,11 +117,13 @@ class ArtPainter:
 		ci.draw_style_box(sb, r)
 
 	func text(pos: Vector2, s: String, size: int, col: Color, rot := 0.0, outline := 0, ocol := INK) -> void:
-		var w := font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
-		ci.draw_set_transform(pos, rot, Vector2.ONE)
+		# glyphs are rasterized at the real (2x) size so map text stays sharp
+		var fs := size * SS
+		var w := font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		ci.draw_set_transform(pos, rot, Vector2.ONE / SS)
 		if outline > 0:
-			ci.draw_string_outline(font, Vector2(-w / 2.0, size * 0.35), s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, outline, ocol)
-		ci.draw_string(font, Vector2(-w / 2.0, size * 0.35), s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, col)
+			ci.draw_string_outline(font, Vector2(-w / 2.0, fs * 0.35), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, outline * SS, ocol)
+		ci.draw_string(font, Vector2(-w / 2.0, fs * 0.35), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 		ci.draw_set_transform_matrix(Transform2D.IDENTITY)
 
 	func eye(c: Vector2, r: float, look: Vector2) -> void:

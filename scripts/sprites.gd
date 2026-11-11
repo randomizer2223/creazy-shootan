@@ -149,7 +149,7 @@ static func icon(id: String) -> ImageTexture:
 	if id == "banana_small":
 		id = "banana"
 	if not _cache.has(id):
-		_cache[id] = Painter.render(_shapes(id))
+		_cache[id] = Painter.render(_shapes(id), 72)
 	return _cache[id]
 
 

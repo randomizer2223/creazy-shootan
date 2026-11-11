@@ -418,7 +418,7 @@ func explode(pos: Vector2, radius: float, dmg: float, knock: float, owner: LWorm
 		var q := pos + Vector2.from_angle(rng.randf() * TAU) * radius * 0.6
 		var qi := Vector2i(clampi(int(q.x), 0, terrain.w - 1), clampi(int(q.y), 0, terrain.h - 1))
 		if terrain.is_solid(qi.x, qi.y):
-			debris_cols.append(terrain.img.get_pixelv(qi))
+			debris_cols.append(terrain.img.get_pixelv(qi * terrain.ss + Vector2i(terrain.pp, terrain.pp)))
 	terrain.carve(pos, radius)
 	if radius >= 14.0:
 		sfx("boom", lerpf(-8.0, 2.0, clampf((radius - 14.0) / 32.0, 0.0, 1.0)), 1.0 - clampf(radius / 140.0, 0.0, 0.3), pos)

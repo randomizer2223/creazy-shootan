@@ -12,6 +12,7 @@ const SHADER := """
 shader_type canvas_item;
 uniform vec4 outline_color : source_color = vec4(0.23, 0.14, 0.13, 1.0);
 uniform float outline_px = 1.7;
+uniform float edge_px = 2.5;
 void fragment() {
 	vec2 px = TEXTURE_PIXEL_SIZE;
 	vec4 c = texture(TEXTURE, UV);
@@ -24,18 +25,20 @@ void fragment() {
 	}
 	float inner = smoothstep(0.4, 0.6, a);
 	float outer = smoothstep(0.4, 0.6, n);
-	float up = texture(TEXTURE, UV - vec2(0.0, px.y * 2.5)).a;
-	float down = texture(TEXTURE, UV + vec2(0.0, px.y * 2.5)).a;
+	float up = texture(TEXTURE, UV - vec2(0.0, px.y * edge_px)).a;
+	float down = texture(TEXTURE, UV + vec2(0.0, px.y * edge_px)).a;
 	col = mix(col, min(col * 1.18 + 0.12, vec3(1.0)), (1.0 - up) * 0.85);
 	col = mix(col, col * 0.62, (1.0 - down) * 0.7);
 	COLOR = vec4(mix(outline_color.rgb, col, inner), outer);
 }
 """
 
-var w := 0
+var w := 0   # map size in world pixels (= physics mask size)
 var h := 0
+var ss := 1  # picture pixels per world pixel (2 = sharper "HD" picture)
+var pp := P  # padding in picture pixels
 var mask := PackedByteArray()
-var img: Image  # padded by P on every side
+var img: Image  # picture, padded by pp on every side
 var bg_tex: ImageTexture
 var chunks_x := 0
 var chunks_y := 0
@@ -47,14 +50,17 @@ var rng := RandomNumberGenerator.new()
 var _bg_node: Node2D
 
 
+## fg may be larger than the mask (2x for sharp picture maps); bg can be any size.
 func setup(fg: Image, solid: PackedByteArray, bg: Image, dcolors: Array, outline := Color(0.23, 0.14, 0.13)) -> void:
 	if fg.get_format() != Image.FORMAT_RGBA8:
 		fg.convert(Image.FORMAT_RGBA8)
-	w = fg.get_width()
-	h = fg.get_height()
-	img = Image.create(w + 2 * P, h + 2 * P, false, Image.FORMAT_RGBA8)
+	ss = maxi(1, int(round(sqrt(float(fg.get_width() * fg.get_height()) / solid.size()))))
+	w = fg.get_width() / ss
+	h = fg.get_height() / ss
+	pp = P * ss
+	img = Image.create(w * ss + 2 * pp, h * ss + 2 * pp, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
-	img.blit_rect(fg, Rect2i(0, 0, w, h), Vector2i(P, P))
+	img.blit_rect(fg, Rect2i(0, 0, w * ss, h * ss), Vector2i(pp, pp))
 	mask = solid
 	if bg.get_format() != Image.FORMAT_RGBA8:
 		bg.convert(Image.FORMAT_RGBA8)
@@ -73,7 +79,7 @@ func setup(fg: Image, solid: PackedByteArray, bg: Image, dcolors: Array, outline
 	_bg_node = Node2D.new()
 	_bg_node.show_behind_parent = true
 	_bg_node.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	_bg_node.draw.connect(func(): _bg_node.draw_texture(bg_tex, Vector2.ZERO))
+	_bg_node.draw.connect(func(): _bg_node.draw_texture_rect(bg_tex, Rect2(0, 0, w, h), false))
 	add_child(_bg_node)
 
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
@@ -82,6 +88,8 @@ func setup(fg: Image, solid: PackedByteArray, bg: Image, dcolors: Array, outline
 	var mat := ShaderMaterial.new()
 	mat.shader = sh
 	mat.set_shader_parameter("outline_color", outline)
+	mat.set_shader_parameter("outline_px", 1.7 * ss)
+	mat.set_shader_parameter("edge_px", 2.5 * ss)
 	if OS.get_environment("L2_NOSHADER") == "":
 		material = mat
 	queue_redraw()
@@ -91,9 +99,10 @@ func _chunk_size(cx: int, cy: int) -> Vector2i:
 	return Vector2i(mini(CH, w - cx * CH), mini(CH, h - cy * CH))
 
 
+## Chunk area inside the padded picture (picture pixels).
 func _padded_rect(cx: int, cy: int) -> Rect2i:
 	var s := _chunk_size(cx, cy)
-	return Rect2i(cx * CH, cy * CH, s.x + 2 * P, s.y + 2 * P)
+	return Rect2i(cx * CH * ss, cy * CH * ss, s.x * ss + 2 * pp, s.y * ss + 2 * pp)
 
 
 func is_solid(x: int, y: int) -> bool:
@@ -118,7 +127,7 @@ func _mark(x0: int, y0: int, x1: int, y1: int) -> void:
 	any_dirty = true
 
 
-## Cuts a round hole. Returns the number of destroyed pixels.
+## Cuts a round hole. Returns the number of destroyed world pixels.
 func carve(c: Vector2, r: float, scorch := true) -> int:
 	if r <= 0.0:
 		return 0
@@ -133,9 +142,8 @@ func carve(c: Vector2, r: float, scorch := true) -> int:
 	if x0 > x1 or y0 > y1:
 		return 0
 	var r2 := r * r
-	var re2 := (r + edge) * (r + edge)
-	var clear := Color(0, 0, 0, 0)
 	var removed := 0
+	# physics
 	for y in range(y0, y1 + 1):
 		var dy := float(y) - c.y
 		var row := y * w
@@ -144,15 +152,46 @@ func carve(c: Vector2, r: float, scorch := true) -> int:
 			if mask[idx] == 0:
 				continue
 			var dx := float(x) - c.x
-			var d2 := dx * dx + dy * dy
-			if d2 <= r2:
+			if dx * dx + dy * dy <= r2:
 				mask[idx] = 0
-				img.set_pixel(x + P, y + P, clear)
 				removed += 1
-			elif d2 <= re2:
-				img.set_pixel(x + P, y + P, img.get_pixel(x + P, y + P).darkened(0.1))
+	if removed == 0 and not scorch:
+		return 0
+	# picture: each row of the hole is one fill_rect (fast), then a thin scorched rim
+	var clear := Color(0, 0, 0, 0)
+	var re := r + edge
+	var inv := 1.0 / ss
+	var px0 := x0 * ss
+	var px1 := (x1 + 1) * ss - 1
+	for yy in range(y0 * ss, (y1 + 1) * ss):
+		var dy := (yy + 0.5) * inv - c.y
+		if absf(dy) > re:
+			continue
+		var outer := sqrt(maxf(re * re - dy * dy, 0.0))
+		var inner := sqrt(maxf(r2 - dy * dy, 0.0)) if absf(dy) <= r else -1.0
+		var a0 := clampi(int(ceil((c.x - outer) * ss - 0.5)), px0, px1)
+		var a1 := clampi(int(floor((c.x + outer) * ss - 0.5)), px0, px1)
+		if inner >= 0.0:
+			var b0 := clampi(int(ceil((c.x - inner) * ss - 0.5)), px0, px1 + 1)
+			var b1 := clampi(int(floor((c.x + inner) * ss - 0.5)), px0 - 1, px1)
+			if b1 >= b0:
+				img.fill_rect(Rect2i(b0 + pp, yy + pp, b1 - b0 + 1, 1), clear)
+			if scorch:
+				for xx in range(a0, b0):
+					_darken(xx + pp, yy + pp)
+				for xx in range(b1 + 1, a1 + 1):
+					_darken(xx + pp, yy + pp)
+		elif scorch:
+			for xx in range(a0, a1 + 1):
+				_darken(xx + pp, yy + pp)
 	_mark(x0, y0, x1, y1)
 	return removed
+
+
+func _darken(x: int, y: int) -> void:
+	var old := img.get_pixel(x, y)
+	if old.a > 0.0:
+		img.set_pixel(x, y, old.darkened(0.1))
 
 
 ## Creates a circle of ground where it is empty now.
@@ -167,8 +206,10 @@ func add_dirt(c: Vector2, r: float) -> int:
 	if x0 > x1 or y0 > y1:
 		return 0
 	var r2 := r * r
+	var bw := x1 - x0 + 1
+	var fresh := PackedByteArray()
+	fresh.resize(bw * (y1 - y0 + 1))
 	var added := 0
-	var base: Color = dirt_colors[rng.randi() % dirt_colors.size()]
 	for y in range(y0, y1 + 1):
 		var dy := float(y) - c.y
 		var row := y * w
@@ -177,13 +218,23 @@ func add_dirt(c: Vector2, r: float) -> int:
 			if mask[idx] == 1:
 				continue
 			var dx := float(x) - c.x
-			var d2 := dx * dx + dy * dy
-			if d2 <= r2:
+			if dx * dx + dy * dy <= r2:
 				mask[idx] = 1
-				# soft dome shading
-				var t := sqrt(d2) / r
-				img.set_pixel(x + P, y + P, base.lightened((1.0 - t) * 0.15 - dy / r * 0.08))
+				fresh[(y - y0) * bw + (x - x0)] = 1
 				added += 1
+	if added == 0:
+		return 0
+	var base: Color = dirt_colors[rng.randi() % dirt_colors.size()]
+	var inv := 1.0 / ss
+	for yy in range(y0 * ss, (y1 + 1) * ss):
+		var wy := yy / ss
+		var dy := (yy + 0.5) * inv - c.y
+		for xx in range(x0 * ss, (x1 + 1) * ss):
+			if fresh[(wy - y0) * bw + (xx / ss - x0)] == 0:
+				continue
+			var dx := (xx + 0.5) * inv - c.x
+			var t := sqrt(dx * dx + dy * dy) / r
+			img.set_pixel(xx + pp, yy + pp, base.lightened((1.0 - t) * 0.15 - dy / r * 0.08))
 	_mark(x0, y0, x1, y1)
 	return added
 
@@ -201,16 +252,20 @@ func stain(c: Vector2, r: float, col: Color) -> void:
 		return
 	var r2 := r * r
 	var touched := false
-	for y in range(y0, y1 + 1):
-		var dy := float(y) - c.y
-		for x in range(x0, x1 + 1):
-			if mask[y * w + x] == 0:
+	var inv := 1.0 / ss
+	for yy in range(y0 * ss, (y1 + 1) * ss):
+		var dy := (yy + 0.5) * inv - c.y
+		var row := (yy / ss) * w
+		for xx in range(x0 * ss, (x1 + 1) * ss):
+			if mask[row + xx / ss] == 0:
 				continue
-			var dx := float(x) - c.x
+			var dx := (xx + 0.5) * inv - c.x
 			var d2 := dx * dx + dy * dy
 			if d2 <= r2:
-				var old := img.get_pixel(x + P, y + P)
-				img.set_pixel(x + P, y + P, old.lerp(col, col.a * (1.0 - d2 / r2 * 0.5)))
+				var old := img.get_pixel(xx + pp, yy + pp)
+				if old.a <= 0.0:
+					continue
+				img.set_pixel(xx + pp, yy + pp, Color(old.lerp(col, col.a * (1.0 - d2 / r2 * 0.5)), old.a))
 				touched = true
 	if touched:
 		_mark(x0, y0, x1, y1)
@@ -287,4 +342,4 @@ func _draw() -> void:
 		for cx in chunks_x:
 			var s := _chunk_size(cx, cy)
 			draw_texture_rect_region(textures[cy * chunks_x + cx], Rect2(cx * CH, cy * CH, s.x, s.y),
-				Rect2(P, P, s.x, s.y))
+				Rect2(pp, pp, s.x * ss, s.y * ss))
