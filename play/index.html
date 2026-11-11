@@ -52,7 +52,10 @@
     return;
   }
   engine.startGame({
-    onProgress: (cur, total) => { if (total > 0) fill.style.width = Math.min(100, cur / total * 100) + '%'; },
+    onProgress: (cur, total) => {
+      if (total > 0) fill.style.width = Math.min(100, cur / total * 100) + '%';
+      if (total > 0 && cur >= total) msg.textContent = 'Preparing graphics... (this takes a few seconds)';
+    },
   }).then(() => { status.remove(); document.getElementById('canvas').focus(); })
     .catch((e) => { console.error(e); msg.textContent = 'Could not start the game: ' + (e && e.message ? e.message : e); });
 })();
