@@ -39,8 +39,8 @@ func _ready() -> void:
 	margin.add_child(col)
 
 	var title := Label.new()
-	title.text = "Liero 2"
-	title.add_theme_font_size_override("font_size", 96)
+	title.text = "Creazy Shootan!"
+	title.add_theme_font_size_override("font_size", 76)
 	title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.45))
 	title.add_theme_color_override("font_outline_color", INK)
 	title.add_theme_constant_override("outline_size", 22)
@@ -119,7 +119,7 @@ func _ready() -> void:
 	start.grab_focus()
 
 	var ver := Label.new()
-	ver.text = "prototype 0.3"
+	ver.text = "prototype 0.4"
 	ver.add_theme_font_size_override("font_size", 14)
 	ver.add_theme_color_override("font_color", Color(1, 1, 1, 0.7))
 	ver.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)

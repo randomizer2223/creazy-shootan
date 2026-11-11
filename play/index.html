@@ -1,6 +1,6 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0">
-<title>Liero 2</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Creazy Shootan!</title></head><body style="margin:0">
+<title>Creazy Shootan!</title>
 <style>
   :root { --bg: #2b1d2e; --fg: #fff4dc; --accent: #ffd86b; --muted: #e8cfe0; color-scheme: dark; }
   html, body { height: 100%; }
@@ -15,7 +15,7 @@
   #msg { color: var(--muted); font-weight: 500; max-width: 60ch; }
 </style>
 <canvas id="canvas" tabindex="0"></canvas>
-<div id="status"><h1>Liero 2</h1><div id="bar"><div id="fill"></div></div><div id="msg">Loading game... (~10 MB)</div></div>
+<div id="status"><h1>Creazy Shootan!</h1><div id="bar"><div id="fill"></div></div><div id="msg">Loading game... (~10 MB)</div></div>
 <script>
 // index.wasm лежить стиснутим (gzip) — розпаковуємо в браузері
 (function () {
@@ -43,7 +43,7 @@
   const status = document.getElementById('status');
   const engine = new Engine({
     args: [], canvasResizePolicy: 2, executable: 'index', experimentalVK: false,
-    fileSizes: { 'index.pck': 146928, 'index.wasm': 39514754 }, focusCanvas: true, gdextensionLibs: [],
+    fileSizes: { 'index.pck': 147728, 'index.wasm': 39514754 }, focusCanvas: true, gdextensionLibs: [],
     ensureCrossOriginIsolationHeaders: false, emscriptenPoolSize: 8, godotPoolSize: 4,
   });
   const missing = Engine.getMissingFeatures({ threads: false });

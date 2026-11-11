@@ -3,7 +3,7 @@ config_version=5
 
 [application]
 
-config/name="Liero 2"
+config/name="Creazy Shootan!"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 

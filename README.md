@@ -1,4 +1,6 @@
-# Liero 2 — прототип (Godot 4.7)
+# Creazy Shootan! — прототип (Godot 4.7)
+
+Грати онлайн: https://randomizer2223.github.io/creazy-shootan/play/
 
 ## Як запустити у браузері
 1. Встанови Godot 4.7.x (Standard, не .NET): https://godotengine.org/download

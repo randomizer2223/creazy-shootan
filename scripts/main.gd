@@ -24,7 +24,6 @@ func show_menu() -> void:
 	if game:
 		game.queue_free()
 		game = null
-	_start_demo()
 	var layer := CanvasLayer.new()
 	layer.layer = 10
 	layer.name = "MenuLayer"
@@ -33,6 +32,11 @@ func show_menu() -> void:
 	layer.add_child(menu)
 	menu.start_pressed.connect(start_game)
 	menu.map_changed.connect(_on_map_changed)
+	# show the menu first, then build the background battle
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if menu != null:
+		_start_demo()
 
 
 var demo: Node2D

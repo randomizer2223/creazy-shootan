@@ -2,8 +2,8 @@ extends Node
 ## Глобальні налаштування гри (autoload "Cfg").
 
 const RELOAD_MODES := [
-	{"name": "Normal", "mult": 0.3},
-	{"name": "Fast", "mult": 0.15},
+	{"name": "Normal", "mult": 0.9},
+	{"name": "Fast", "mult": 0.45},
 	{"name": "Almost instant", "mult": 0.05},
 ]
 

@@ -1,10 +1,10 @@
-# Tiny local web server for Liero 2 (no install needed). Close the window to stop.
+# Tiny local web server for Creazy Shootan! (no install needed). Close the window to stop.
 param([int]$Port = 8060)
 $Root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\play'))
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:$Port/")
-try { $listener.Start() } catch { Write-Host "Port $Port is busy. Close the other Liero window and try again."; pause; exit 1 }
-Write-Host "Liero 2 is running at http://localhost:$Port/"
+try { $listener.Start() } catch { Write-Host "Port $Port is busy. Close the other game window and try again."; pause; exit 1 }
+Write-Host "Creazy Shootan! is running at http://localhost:$Port/"
 Write-Host "Close this window to stop the game server."
 Start-Process "http://localhost:$Port/"
 $mime = @{ '.html' = 'text/html; charset=utf-8'; '.js' = 'text/javascript'; '.wasm' = 'application/wasm'; '.png' = 'image/png' }

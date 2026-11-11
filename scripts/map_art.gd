@@ -9,9 +9,22 @@ const INK := Color("3b2321")
 
 
 ## Returns {} if the picture could not be rendered (for example in headless mode).
+static var _cache := {}
+
+
 static func build(id: String, host: Node) -> Dictionary:
 	if DisplayServer.get_name() == "headless":
 		return {}
+	if _cache.has(id):
+		return MapGen.copy(_cache[id])
+	var d: Dictionary = await _render(id, host)
+	if not d.is_empty():
+		_cache[id] = d
+		return MapGen.copy(d)
+	return d
+
+
+static func _render(id: String, host: Node) -> Dictionary:
 	var fg_vp := _viewport(host, id, 0)
 	var bg_vp := _viewport(host, id, 1)
 	await RenderingServer.frame_post_draw

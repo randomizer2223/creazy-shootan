@@ -37,7 +37,28 @@ static func preset_names() -> Array:
 	return out
 
 
+static var _cache_index := -1
+static var _cache: Dictionary = {}
+
+
+## Same map as last time (menu background -> match) is reused instead of generated again.
 static func build(index: int) -> Dictionary:
+	if index == _cache_index and not _cache.is_empty():
+		return copy(_cache)
+	var d := _build(index)
+	_cache_index = index
+	_cache = d
+	return copy(d)
+
+
+## The match changes the ground mask, so each user gets its own copy of it.
+static func copy(d: Dictionary) -> Dictionary:
+	var c := d.duplicate()
+	c["mask"] = (d["mask"] as PackedByteArray).duplicate()
+	return c
+
+
+static func _build(index: int) -> Dictionary:
 	var p: Dictionary = PRESETS[clampi(index, 0, PRESETS.size() - 1)]
 	if p["style"] == "art":
 		p = PRESETS[1]

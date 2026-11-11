@@ -1,3 +1,3 @@
 @echo off
-title Liero 2
+title Creazy Shootan!
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\serve.ps1"
