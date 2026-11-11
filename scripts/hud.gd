@@ -121,7 +121,7 @@ func _draw_hud() -> void:
 		yy += 26.0
 
 	# ---- kill feed ----
-	var fy := 40.0
+	var fy := 300.0 if size.y > size.x else 40.0  # upright phone: below the scoreboard
 	for f in game.feed:
 		var c: Color = f[2]
 		c.a = clampf(f[1], 0.0, 1.0)
@@ -131,7 +131,8 @@ func _draw_hud() -> void:
 	# ---- pickup toast ----
 	if game.toast[1] > 0.0:
 		var a := clampf(game.toast[1], 0.0, 1.0)
-		_text_c(size.x / 2.0, size.y - 90.0, game.toast[0], 30, Color(1, 1, 1, a), 9)
+		var ty := size.y * 0.6 if size.y > size.x else size.y - 90.0
+		_text_c(size.x / 2.0, ty, game.toast[0], 30, Color(1, 1, 1, a), 9)
 
 	# ---- center messages ----
 	var center := size / 2.0

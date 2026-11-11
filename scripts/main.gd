@@ -6,7 +6,7 @@ var game: Node2D
 
 
 func _ready() -> void:
-	_add_rotate_hint()
+	_setup_orientation()
 	var args := OS.get_cmdline_user_args()
 	if "--selftest" in args:
 		_selftest()
@@ -21,40 +21,18 @@ func _ready() -> void:
 	show_menu()
 
 
-## On a phone held upright everything is tiny, so ask to turn it sideways.
-func _add_rotate_hint() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 100
-	add_child(layer)
-	var c := Control.new()
-	c.set_anchors_preset(Control.PRESET_FULL_RECT)
-	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(c)
-	var font := ThemeDB.fallback_font
-	c.draw.connect(func():
-		var s := c.size
-		if s.y <= s.x:
-			return
-		c.draw_rect(Rect2(Vector2.ZERO, s), Color(0.17, 0.1, 0.18, 0.96))
-		var ctr := s / 2.0
-		c.draw_set_transform(ctr + Vector2(0, -120), -PI / 2.0 * (0.5 + 0.5 * sin(Time.get_ticks_msec() / 400.0)), Vector2.ONE)
-		c.draw_style_box(Cfg.round_box(Color(1.0, 0.96, 0.86), Cfg.INK, 6, 22, 0), Rect2(-70, -120, 140, 240))
-		c.draw_set_transform_matrix(Transform2D.IDENTITY)
-		for i in 2:
-			var t := "Turn your phone" if i == 0 else "sideways to play"
-			var w := font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 64).x
-			c.draw_string_outline(font, Vector2(ctr.x - w / 2.0, ctr.y + 120 + i * 80), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 64, 14, Cfg.INK)
-			c.draw_string(font, Vector2(ctr.x - w / 2.0, ctr.y + 120 + i * 80), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 64, Color(1.0, 0.85, 0.45))
-	)
-	var timer := Timer.new()
-	timer.wait_time = 0.1
-	timer.autostart = true
-	timer.timeout.connect(func():
-		var portrait := c.size.y > c.size.x
-		c.mouse_filter = Control.MOUSE_FILTER_STOP if portrait else Control.MOUSE_FILTER_IGNORE
-		c.queue_redraw()
-	)
-	layer.add_child(timer)
+## Portrait and landscape both work: the base canvas is 1280x720 sideways and
+## 720x1280 upright, so things keep the same size on screen either way.
+func _setup_orientation() -> void:
+	get_tree().root.size_changed.connect(_apply_orientation)
+	_apply_orientation()
+
+
+func _apply_orientation() -> void:
+	var win := DisplayServer.window_get_size()
+	var want := Vector2i(720, 1280) if win.y > win.x else Vector2i(1280, 720)
+	if get_tree().root.content_scale_size != want:
+		get_tree().root.content_scale_size = want
 
 
 func show_menu() -> void:
