@@ -6,6 +6,7 @@ var game: Node2D
 
 
 func _ready() -> void:
+	print("[boot] main _ready at %d ms" % Time.get_ticks_msec())
 	_setup_orientation()
 	var args := OS.get_cmdline_user_args()
 	if "--selftest" in args:
@@ -51,7 +52,9 @@ func show_menu() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	if menu != null:
+		print("[boot] menu visible at %d ms" % Time.get_ticks_msec())
 		_start_demo()
+		print("[boot] background battle ready at %d ms" % Time.get_ticks_msec())
 
 
 var demo: Node2D

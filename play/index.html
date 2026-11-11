@@ -43,7 +43,7 @@
   const status = document.getElementById('status');
   const engine = new Engine({
     args: [], canvasResizePolicy: 2, executable: 'index', experimentalVK: false,
-    fileSizes: { 'index.pck': 182000, 'index.wasm': 39514754 }, focusCanvas: true, gdextensionLibs: [],
+    fileSizes: { 'index.pck': 182048, 'index.wasm': 39514754 }, focusCanvas: true, gdextensionLibs: [],
     ensureCrossOriginIsolationHeaders: false, emscriptenPoolSize: 8, godotPoolSize: 4,
   });
   const missing = Engine.getMissingFeatures({ threads: false });
@@ -54,7 +54,10 @@
   engine.startGame({
     onProgress: (cur, total) => {
       if (total > 0) fill.style.width = Math.min(100, cur / total * 100) + '%';
-      if (total > 0 && cur >= total) msg.textContent = 'Preparing graphics... (this takes a few seconds)';
+      if (total > 0 && cur >= total) {
+        msg.textContent = 'Preparing graphics... (this takes a few seconds)';
+        if (/firefox/i.test(navigator.userAgent)) msg.textContent += ' — tip: Chrome and Edge start this game much faster than Firefox';
+      }
     },
   }).then(() => { status.remove(); document.getElementById('canvas').focus(); })
     .catch((e) => { console.error(e); msg.textContent = 'Could not start the game: ' + (e && e.message ? e.message : e); });
