@@ -42,6 +42,9 @@ var hook_pos := Vector2.ZERO
 var hook_vel := Vector2.ZERO
 var hook_t := 0.0
 var rope_len := 0.0
+var rope_auto := false  # right after the hook grabs, the rope reels in by itself
+const ROPE_SHORT := 30.0
+const ROPE_REEL := 900.0
 
 var dig_cd := 0.0
 var blink_t := 3.0
@@ -169,7 +172,13 @@ func step(g, dt: float) -> void:
 
 	_update_hook(t, dt)
 	if hook_state == 2:
-		rope_len = clampf(rope_len + float(input["rope_dir"]) * 140.0 * dt, ROPE_MIN, ROPE_MAX)
+		var rd := float(input["rope_dir"])
+		if rd != 0.0:
+			rope_auto = false  # player takes over (W / S)
+		if rope_auto:
+			rope_len = move_toward(rope_len, ROPE_SHORT, ROPE_REEL * dt)
+		else:
+			rope_len = clampf(rope_len + rd * 140.0 * dt, ROPE_MIN, ROPE_MAX)
 		var d := pos - hook_pos
 		var dist := d.length()
 		if dist > rope_len and dist > 0.01:
@@ -178,6 +187,8 @@ func step(g, dt: float) -> void:
 			if vr > 0.0:
 				vel -= n * vr
 			vel -= n * minf((dist - rope_len) * 7.0, 400.0)
+		if vel.length() > 650.0:
+			vel = vel.normalized() * 650.0  # reeling in is fast but not a cannon
 
 	_move(t, dt, was_ground)
 	if on_ground and mv != 0:
@@ -197,6 +208,7 @@ func _update_hook(t: LTerrain, dt: float) -> void:
 			if t.is_solid_v(hook_pos):
 				hook_state = 2
 				rope_len = clampf(pos.distance_to(hook_pos), ROPE_MIN, ROPE_MAX)
+				rope_auto = true
 				return
 		if hook_t > 4.0:
 			hook_state = 0
