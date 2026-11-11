@@ -12,6 +12,7 @@ var status: Label
 var preview: TextureRect
 var file_dialog: FileDialog
 var _waiting_web := false
+var touch := DisplayServer.is_touchscreen_available()  # phone/tablet: bigger buttons
 
 
 func _ready() -> void:
@@ -29,18 +30,18 @@ func _ready() -> void:
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_LEFT_WIDE)
 	margin.add_theme_constant_override("margin_left", 56)
-	margin.add_theme_constant_override("margin_top", 40)
-	margin.add_theme_constant_override("margin_bottom", 40)
+	margin.add_theme_constant_override("margin_top", 16 if touch else 40)
+	margin.add_theme_constant_override("margin_bottom", 16 if touch else 40)
 	add_child(margin)
 	var col := VBoxContainer.new()
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	col.custom_minimum_size = Vector2(460, 0)
-	col.add_theme_constant_override("separation", 12)
+	col.custom_minimum_size = Vector2(580 if touch else 460, 0)
+	col.add_theme_constant_override("separation", 8 if touch else 12)
 	margin.add_child(col)
 
 	var title := Label.new()
 	title.text = "Creazy Shootan!"
-	title.add_theme_font_size_override("font_size", 76)
+	title.add_theme_font_size_override("font_size", 60 if touch else 76)
 	title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.45))
 	title.add_theme_color_override("font_outline_color", INK)
 	title.add_theme_constant_override("outline_size", 22)
@@ -54,12 +55,13 @@ func _ready() -> void:
 	sub.add_theme_color_override("font_outline_color", INK)
 	sub.add_theme_constant_override("outline_size", 9)
 	col.add_child(sub)
-	col.add_child(_spacer(10))
+	sub.visible = not touch
+	col.add_child(_spacer(4 if touch else 10))
 
 	var panel := PanelContainer.new()
 	col.add_child(panel)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 10)
+	box.add_theme_constant_override("separation", 6 if touch else 10)
 	panel.add_child(box)
 
 	var maps: Array = []
@@ -83,10 +85,21 @@ func _ready() -> void:
 	var kills := ["3", "5", "10", "15", "20", "30", "50"]
 	box.add_child(_selector("kills", "KILLS TO WIN", kills, maxi(kills.find(str(Cfg.kill_limit)), 2)))
 
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	box.add_child(row)
 	var up := Button.new()
 	up.text = "Upload image as map"
+	up.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	up.pressed.connect(_on_upload)
-	box.add_child(up)
+	row.add_child(up)
+	var fs := Button.new()
+	fs.text = "Fullscreen"
+	fs.pressed.connect(_toggle_fullscreen)
+	row.add_child(fs)
+	if touch:
+		up.custom_minimum_size = Vector2(0, 56)
+		fs.custom_minimum_size = Vector2(0, 56)
 	preview = TextureRect.new()
 	preview.custom_minimum_size = Vector2(0, 80)
 	preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -98,7 +111,7 @@ func _ready() -> void:
 
 	var start := Button.new()
 	start.text = "Play!"
-	start.custom_minimum_size = Vector2(0, 72)
+	start.custom_minimum_size = Vector2(0, 84 if touch else 72)
 	start.add_theme_font_size_override("font_size", 40)
 	for c in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color"]:
 		start.add_theme_color_override(c, Color.WHITE)
@@ -128,6 +141,13 @@ func _ready() -> void:
 	add_child(ver)
 
 
+func _toggle_fullscreen() -> void:
+	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+
+
 func _fit() -> void:
 	position = Vector2.ZERO
 	size = get_viewport_rect().size
@@ -144,21 +164,25 @@ func _selector(key: String, label: String, options: Array, index: int) -> HBoxCo
 	h.add_theme_constant_override("separation", 6)
 	var l := Label.new()
 	l.text = label
-	l.custom_minimum_size = Vector2(170, 0)
+	l.custom_minimum_size = Vector2(190 if touch else 170, 0)
+	if touch:
+		l.add_theme_font_size_override("font_size", 24)
 	l.add_theme_color_override("font_color", Color(INK, 0.75))
 	h.add_child(l)
 	var left := Button.new()
 	left.text = "<"
-	left.custom_minimum_size = Vector2(44, 40)
+	left.custom_minimum_size = Vector2(70, 56) if touch else Vector2(44, 40)
 	h.add_child(left)
 	var val := Label.new()
 	val.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	val.add_theme_color_override("font_color", ACCENT)
+	if touch:
+		val.add_theme_font_size_override("font_size", 24)
 	h.add_child(val)
 	var right := Button.new()
 	right.text = ">"
-	right.custom_minimum_size = Vector2(44, 40)
+	right.custom_minimum_size = Vector2(70, 56) if touch else Vector2(44, 40)
 	h.add_child(right)
 	sel[key] = {"options": options, "index": clampi(index, 0, options.size() - 1), "label": val}
 	val.text = options[sel[key]["index"]]

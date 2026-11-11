@@ -49,6 +49,16 @@ func _text_c(cx: float, y: float, s: String, size: int, col: Color, outline := 0
 	_text(Vector2(roundf(cx - w / 2.0), y), s, size, col, outline)
 
 
+## Which weapon slot (top left) is at this screen point, or -1. Used by touch controls.
+func slot_at(p: Vector2) -> int:
+	if game == null or game.player == null:
+		return -1
+	for i in game.player.weapons.size():
+		if Rect2(16 + i * 50, 128, 44, 48).grow(5).has_point(p):
+			return i
+	return -1
+
+
 func _draw_hud() -> void:
 	if game == null or game.player == null:
 		return
@@ -91,7 +101,8 @@ func _draw_hud() -> void:
 			var am := "x%d" % wpn["ammo"]
 			var aw := font.get_string_size(am, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
 			_text(r.position + Vector2(slot - aw - 4, slot - 5), am, 12, Color.WHITE, 4)
-	_text(Vector2(bx + 2, by + slot + 24.0), "Switch weapon: mouse wheel  •  Q / E  •  1-9", 13, Color.WHITE, 4)
+	var hint := "Tap a weapon to switch" if (game.touch and game.touch.active) else "Switch weapon: mouse wheel  •  Q / E  •  1-9"
+	_text(Vector2(bx + 2, by + slot + 24.0), hint, 13, Color.WHITE, 4)
 
 	# ---- scoreboard ----
 	var sorted: Array = game.worms.duplicate()
@@ -129,15 +140,18 @@ func _draw_hud() -> void:
 	if game.paused:
 		panel.draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.45))
 		_text_c(center.x, center.y, "Paused", 64, SUN, 14)
-		_text_c(center.x, center.y + 48, "Enter — resume     Esc — menu", 22, Color.WHITE, 6)
+		if not (game.touch and game.touch.active):
+			_text_c(center.x, center.y + 48, "Enter — resume     Esc — menu", 22, Color.WHITE, 6)
 	if game.game_over:
 		panel.draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.45))
 		var wn: String = game.winner.name if game.winner else "?"
 		_text_c(center.x, center.y - 10, wn + " wins!", 64, game.winner.color if game.winner else Color.WHITE, 14)
-		_text_c(center.x, center.y + 44, "Press Enter", 22, Color.WHITE, 6)
+		_text_c(center.x, center.y + 44, "Tap to continue" if (game.touch and game.touch.active) else "Press Enter", 22, Color.WHITE, 6)
 
 	# ---- controls help (auto-hides, H toggles) ----
 	var left: float = game.help_until - game.time
+	if game.touch and game.touch.active:
+		left = 0.0  # phones get on-screen buttons instead
 	if left > 0.0:
 		var lines := [
 			"A / D  move      W / Space  jump      S  dig",

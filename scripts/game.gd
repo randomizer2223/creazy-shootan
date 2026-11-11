@@ -27,6 +27,7 @@ var glow: Node2D
 var labels: Node2D
 var cam: Camera2D
 var hud: CanvasLayer
+var touch: CanvasLayer  # on-screen controls for phones
 
 var worms: Array = []
 var bots: Array = []
@@ -118,6 +119,9 @@ func start() -> void:
 		hud = preload("res://scripts/hud.gd").new()
 		hud.game = self
 		add_child(hud)
+		touch = preload("res://scripts/touch_controls.gd").new()
+		touch.game = self
+		add_child(touch)
 
 	var as_bot := headless_test or demo
 	player = _make_worm(0, "Bot Pixel" if demo else "You", COLORS[0], as_bot)
@@ -202,6 +206,10 @@ func _physics_process(dt: float) -> void:
 
 
 func _player_input(dt: float) -> Dictionary:
+	if touch and touch.active:
+		var tinp := LWorm.empty_input()
+		touch.fill_input(tinp, player)
+		return tinp
 	var inp := LWorm.empty_input()
 	var w := player
 	var mv := 0
@@ -253,6 +261,8 @@ func _player_input(dt: float) -> Dictionary:
 func _unhandled_input(event: InputEvent) -> void:
 	if demo:
 		return
+	if event is InputEventKey and touch:
+		touch.active = false  # a keyboard is being used: back to desktop controls
 	if event is InputEventMouseMotion:
 		mouse_aim = true
 	elif event is InputEventMouseButton and event.pressed:
