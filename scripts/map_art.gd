@@ -30,6 +30,8 @@ static func _render(id: String, host: Node) -> Dictionary:
 	var bg_vp := _viewport(host, id, 1)
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
+	if not is_instance_valid(fg_vp) or not is_instance_valid(bg_vp):
+		return {}  # the owner was closed while we waited
 	var fg := fg_vp.get_texture().get_image()
 	var bg := bg_vp.get_texture().get_image()
 	fg_vp.queue_free()

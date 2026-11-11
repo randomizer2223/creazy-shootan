@@ -267,8 +267,21 @@ const BG_CRITTERS := [
 ]
 
 
+var _live := false
+
+
+## true when the live bot battle is running behind the menu
+func set_live(on: bool) -> void:
+	_live = on
+	if _bg:
+		_bg.queue_redraw()
+
+
 func _draw_bg(c: Control) -> void:
 	var s := c.size
+	if _live:
+		c.draw_rect(Rect2(Vector2.ZERO, s), Color(0.1, 0.05, 0.12, 0.25))
+		return
 	c.draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(s.x, 0), s, Vector2(0, s.y)]),
 		PackedColorArray([Color("9fd4ff"), Color("c6b2ff"), Color("ffd0ea"), Color("ffe9c9")]))
 	for h in [[0.15, 0.95, 0.42], [0.55, 1.05, 0.5], [0.95, 0.98, 0.45]]:

@@ -2,6 +2,8 @@ extends Node2D
 ## One match: map, worms, projectiles, weapon pickups, effects, camera.
 
 signal exit_to_menu
+signal map_ready
+var is_map_ready := false
 
 const BOT_NAMES := ["Petro", "Oksana", "Taras", "Myroslava", "Bohdan", "Yaryna", "Ostap", "Solomiia"]
 const COLORS := [
@@ -128,6 +130,8 @@ func start() -> void:
 		_make_worm(i + 1, BOT_NAMES[i % BOT_NAMES.size()], COLORS[(i + 1) % COLORS.size()], true)
 	cam.position = player.pos
 	_announce_weapon(player)
+	is_map_ready = true
+	map_ready.emit()
 
 
 func sfx(snd: String, vol := 0.0, pitch := 1.0, pos := Vector2.INF) -> void:

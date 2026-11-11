@@ -48,10 +48,12 @@ func show_menu() -> void:
 	layer.add_child(menu)
 	menu.start_pressed.connect(start_game)
 	menu.map_changed.connect(_on_map_changed)
-	# no live battle behind the menu any more: it cost several seconds of map
-	# building and shader compiling before the menu could be used
 	await get_tree().process_frame
 	print("[boot] menu visible at %d ms" % Time.get_ticks_msec())
+	# the live bot battle is built only after the menu is already on screen
+	await get_tree().create_timer(0.5).timeout
+	if menu != null and demo == null:
+		_start_demo()
 
 
 var demo: Node2D
@@ -65,16 +67,23 @@ func _start_demo() -> void:
 		demo = null
 	var keep := Cfg.bot_count
 	Cfg.bot_count = 4
-	demo = preload("res://scripts/game.gd").new()
-	demo.demo = true
-	add_child(demo)
-	move_child(demo, 0)
-	demo.start()
+	var d: Node2D = preload("res://scripts/game.gd").new()
+	demo = d
+	d.demo = true
+	add_child(d)
+	move_child(d, 0)
+	if menu:
+		menu.set_live(false)
+	d.start()
 	Cfg.bot_count = keep
+	if not d.is_map_ready:
+		await d.map_ready
+	if is_instance_valid(d) and d == demo and menu != null:
+		menu.set_live(true)
+		print("[boot] live menu battle ready at %d ms" % Time.get_ticks_msec())
 
 
 func _on_map_changed() -> void:
-	return
 	_demo_gen += 1
 	var my := _demo_gen
 	await get_tree().create_timer(0.35).timeout
