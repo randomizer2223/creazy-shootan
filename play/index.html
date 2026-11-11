@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0">
+<title>Liero 2</title>
+<style>
+  :root { --bg: #2b1d2e; --fg: #fff4dc; --accent: #ffd86b; --muted: #e8cfe0; color-scheme: dark; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--fg); overflow: hidden; touch-action: none; }
+  #canvas { display: block; width: 100%; height: 100%; outline: none; }
+  #status { position: fixed; inset: 0; display: flex; flex-direction: column; gap: 14px; align-items: center; justify-content: center;
+    background: var(--bg); font: 600 15px/1.4 system-ui, sans-serif; padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px)); text-align: center; }
+  #status h1 { margin: 0; font-size: 48px; letter-spacing: 0.04em; color: var(--accent); }
+  #bar { width: min(360px, 80vw); height: 14px; background: #fff4dc; border: 3px solid #3b2321; border-radius: 10px; overflow: hidden; }
+  #fill { height: 100%; width: 0; background: #ff7399; transition: width .2s; }
+  #msg { color: var(--muted); font-weight: 500; max-width: 60ch; }
+</style>
+<canvas id="canvas" tabindex="0"></canvas>
+<div id="status"><h1>Liero 2</h1><div id="bar"><div id="fill"></div></div><div id="msg">Loading game... (~10 MB)</div></div>
+<script>
+// index.wasm лежить стиснутим (gzip) — розпаковуємо в браузері
+(function () {
+  const origFetch = window.fetch.bind(window);
+  window.fetch = async function (input, init) {
+    const url = typeof input === 'string' ? input : input.url;
+    if (/index\.wasm(\?|$)/.test(url)) {
+      const r = await origFetch('engine-gz.wasm', init);
+      if (!r.ok) return r;
+      const body = r.body.pipeThrough(new DecompressionStream('gzip'));
+      return new Response(body, { status: 200, headers: { 'Content-Type': 'application/wasm' } });
+    }
+    if (/index\.pck(\?|$)/.test(url)) {
+      return origFetch('pck-data.wasm', init);
+    }
+    return origFetch(input, init);
+  };
+})();
+</script>
+<script src="index.js"></script>
+<script>
+(function () {
+  const fill = document.getElementById('fill');
+  const msg = document.getElementById('msg');
+  const status = document.getElementById('status');
+  const engine = new Engine({
+    args: [], canvasResizePolicy: 2, executable: 'index', experimentalVK: false,
+    fileSizes: { 'index.pck': 146928, 'index.wasm': 39514754 }, focusCanvas: true, gdextensionLibs: [],
+    ensureCrossOriginIsolationHeaders: false, emscriptenPoolSize: 8, godotPoolSize: 4,
+  });
+  const missing = Engine.getMissingFeatures({ threads: false });
+  if (missing.length) {
+    msg.textContent = 'Your browser is missing: ' + missing.join(', ');
+    return;
+  }
+  engine.startGame({
+    onProgress: (cur, total) => { if (total > 0) fill.style.width = Math.min(100, cur / total * 100) + '%'; },
+  }).then(() => { status.remove(); document.getElementById('canvas').focus(); })
+    .catch((e) => { console.error(e); msg.textContent = 'Could not start the game: ' + (e && e.message ? e.message : e); });
+})();
+</script>
+
+</body></html>
